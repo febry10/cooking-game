@@ -222,12 +222,39 @@ function drawCustomer(ctx, order, x, y, r) {
   ctx.closePath();
   ctx.fill();
   ellipse(ctx, x, y, r, r * 0.94, order.skin);
-  // Hair: a cap over the top of the head.
+  // Hair: a cap over the top of the head, broken up so it reads as hair and
+  // not a helmet — a scalloped fringe, a side sweep or spikes depending on
+  // the customer (picked by order id, so shot scenes stay deterministic),
+  // plus side tufts in front of the ears for every style.
   ctx.fillStyle = order.hair;
   ctx.beginPath();
   ctx.arc(x, y - r * 0.14, r * 0.99, Math.PI * 1.02, Math.PI * 1.98);
   ctx.closePath();
   ctx.fill();
+  const hairStyle = (order.id ?? 0) % 3;
+  if (hairStyle === 0) {
+    // Scalloped fringe: a row of bumps along the hairline.
+    for (const off of [-0.62, -0.31, 0, 0.31, 0.62]) {
+      ellipse(ctx, x + off * r, y - r * 0.50 + Math.abs(off) * r * 0.20, r * 0.21, r * 0.17, order.hair);
+    }
+  } else if (hairStyle === 1) {
+    // Side sweep: one wide fringe bump, swept to the customer's left.
+    ellipse(ctx, x - r * 0.34, y - r * 0.52, r * 0.36, r * 0.21, order.hair);
+    ellipse(ctx, x + r * 0.30, y - r * 0.58, r * 0.24, r * 0.15, order.hair);
+  } else {
+    // Spikes: three tufts poking up out of the cap.
+    ctx.fillStyle = order.hair;
+    for (const off of [-0.45, 0, 0.45]) {
+      ctx.beginPath();
+      ctx.moveTo(x + off * r - r * 0.17, y - r * 0.84);
+      ctx.lineTo(x + off * r + r * 0.04, y - r * 1.24);
+      ctx.lineTo(x + off * r + r * 0.23, y - r * 0.82);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  ellipse(ctx, x - r * 0.93, y - r * 0.08, r * 0.13, r * 0.27, order.hair);
+  ellipse(ctx, x + r * 0.93, y - r * 0.08, r * 0.13, r * 0.27, order.hair);
   // Eyes.
   ellipse(ctx, x - r * 0.34, y + r * 0.02, r * 0.09, r * 0.12, PALETTE.black);
   ellipse(ctx, x + r * 0.34, y + r * 0.02, r * 0.09, r * 0.12, PALETTE.black);
@@ -497,21 +524,35 @@ function drawTickets(ctx, state) {
 function drawTimingRing(ctx, x, y, radius, progress) {
   const stage = donenessOf(progress);
   ctx.strokeStyle = 'rgba(255,255,255,0.28)';
-  ctx.lineWidth = 6;
+  ctx.lineWidth = 7;
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, Math.PI * 2);
   ctx.stroke();
-  // The golden window, marked on the ring itself.
-  ctx.strokeStyle = 'rgba(255,201,77,0.55)';
+  // The golden window, marked on the ring itself in bright gold so the
+  // PERFECT zone is obvious at a glance.
+  ctx.strokeStyle = 'rgba(255,201,77,0.95)';
+  ctx.lineWidth = 10;
   ctx.beginPath();
   ctx.arc(x, y, radius, -Math.PI / 2 + 0.42 * Math.PI * 2, -Math.PI / 2 + 0.78 * Math.PI * 2);
   ctx.stroke();
   ctx.strokeStyle = STAGE_COLOURS[stage];
-  ctx.lineWidth = 6;
+  ctx.lineWidth = 7;
   ctx.beginPath();
   ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + Math.min(1, progress) * Math.PI * 2);
   ctx.stroke();
-  text(ctx, stage === 'perfect' ? 'PERFECT!' : stage.toUpperCase(), x, y + radius + 16, stage === 'perfect' ? 17 : 14, STAGE_COLOURS[stage]);
+  if (stage === 'perfect') {
+    // Bright gold with a dark outline: the one label that must pop.
+    ctx.font = `800 18px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(36,18,7,0.85)';
+    ctx.strokeText('PERFECT!', x, y + radius + 17);
+    ctx.fillStyle = PALETTE.goldBright;
+    ctx.fillText('PERFECT!', x, y + radius + 17);
+  } else {
+    text(ctx, stage.toUpperCase(), x, y + radius + 16, 14, STAGE_COLOURS[stage]);
+  }
 }
 
 function drawGrill(ctx, state) {
@@ -629,7 +670,7 @@ function drawStations(ctx, state, ui) {
     ctx.stroke();
     ellipse(ctx, x + 17, s.y + 17, 12, 12, PALETTE.wallBand);
     text(ctx, `${i + 1}`, x + 17, s.y + 18, 14, '#fff6e0');
-    drawFood(ctx, id, x + s.w / 2, s.y + 52, 62, id === 'patty' ? 'raw' : null);
+    drawFood(ctx, id, x + s.w / 2, s.y + 52, 68, id === 'patty' ? 'raw' : null);
     text(ctx, info, x + s.w / 2, s.y + 96, 16, PALETTE.ink);
     const kind = id === 'patty' ? '→ grill' : id === 'fries' ? '→ fryer' : '→ tray';
     text(ctx, kind, x + s.w / 2, s.y + 115, 12, PALETTE.inkSoft, 'center', 400);
@@ -759,7 +800,11 @@ function drawButton(ctx, rect, label, ui, primary) {
 
 function drawTitle(ctx, state, ui) {
   drawKitchen(ctx, state, ui);
-  dim(ctx, 0.45);
+  dim(ctx, 0.62);
+  // A solid cream panel behind the whole title block, so no dimmed kitchen
+  // detail (station cards, tray labels) bleeds through or collides with the
+  // title text, the buttons or the hint line at the bottom.
+  panel(ctx, 196, 64, 888, 596);
   drawSkillet(ctx, 640, 168, 190);
   ctx.font = `800 92px ${FONT}`;
   ctx.textAlign = 'center';
@@ -767,13 +812,13 @@ function drawTitle(ctx, state, ui) {
   ctx.lineWidth = 10;
   ctx.strokeStyle = 'rgba(36,18,7,0.85)';
   ctx.strokeText('Golden Skillet', 640, 292);
-  ctx.fillStyle = PALETTE.goldBright;
+  ctx.fillStyle = PALETTE.gold;
   ctx.fillText('Golden Skillet', 640, 292);
-  text(ctx, 'Cook fast. Serve golden. Keep the bistro alive.', 640, 356, 24, PALETTE.cream, 'center', 600);
-  if (ui.best > 0) text(ctx, `Best score: ${ui.best}`, 640, 398, 19, '#e8cf9f', 'center', 600);
+  text(ctx, 'Cook fast. Serve golden. Keep the bistro alive.', 640, 356, 24, PALETTE.ink, 'center', 600);
+  if (ui.best > 0) text(ctx, `Best score: ${ui.best}`, 640, 398, 19, PALETTE.inkSoft, 'center', 600);
   drawButton(ctx, BUTTONS.play, '▶  PLAY', ui, true);
   drawButton(ctx, BUTTONS.howto, 'How to Play', ui, false);
-  text(ctx, 'Mouse or touch to cook • Keys 1–8 for stations • Space serves', 640, 640, 17, '#e8cf9f', 'center', 400);
+  text(ctx, 'Mouse or touch to cook • Keys 1–8 for stations • Space serves', 640, 624, 17, PALETTE.inkSoft, 'center', 400);
 }
 
 function drawHowto(ctx, state, ui) {

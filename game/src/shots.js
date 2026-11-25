@@ -64,8 +64,8 @@ function stagePlay(state) {
     { id: 'lettuce', doneness: null },
   ];
   state.activeTray = 0;
-  state.popups.push({ x: 1080, y: 98, text: '+18 coins', colour: '#b07f2e', life: 0.3, maxLife: 1.25 });
-  state.popups.push({ x: 86, y: 268, text: 'PERFECT!', colour: '#3e7d4e', life: 0.3, maxLife: 1.25 });
+  state.popups.push({ x: 802, y: 264, text: '+18 coins', colour: '#b07f2e', life: 0.3, maxLife: 1.25 });
+  state.popups.push({ x: 86, y: 284, text: 'PERFECT!', colour: '#b07f2e', life: 0.3, maxLife: 1.25 });
   return { screen: SCREEN_PLAY, best: 900 };
 }
 
